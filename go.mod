@@ -1,4 +1,4 @@
-module github.com/jufi/caddyku
+module github.com/jufianto/caddyku
 
 go 1.23.2
 

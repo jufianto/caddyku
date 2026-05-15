@@ -48,28 +48,39 @@ func WriteEmptyCaddyfile(dir string) error {
 	return os.WriteFile(path, []byte(""), 0644)
 }
 
-func PatchAppCompose(path, service, containerName string) error {
+func PatchAppCompose(path, service, containerName string, forceContainer bool) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("reading %s: %w", path, err)
+		return "", fmt.Errorf("reading %s: %w", path, err)
 	}
 
 	var raw map[string]interface{}
 	if err := yaml.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("parsing %s: %w", path, err)
+		return "", fmt.Errorf("parsing %s: %w", path, err)
 	}
 
 	services, ok := raw["services"].(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("no services found in %s", path)
+		return "", fmt.Errorf("no services found in %s", path)
 	}
 
 	svc, ok := services[service].(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("service %q not found in %s", service, path)
+		return "", fmt.Errorf("service %q not found in %s", service, path)
 	}
 
-	svc["container_name"] = containerName
+	actualContainerName := containerName
+	if existing, ok := svc["container_name"].(string); ok && existing != "" {
+		actualContainerName = existing
+		if containerName != "" && containerName != existing && !forceContainer {
+			return "", fmt.Errorf("service %q already has container_name %q; use --force-container to overwrite it", service, existing)
+		}
+	}
+
+	if containerName != "" && (actualContainerName == containerName || forceContainer) {
+		actualContainerName = containerName
+		svc["container_name"] = containerName
+	}
 
 	networks := toStringSlice(svc["networks"])
 	if !contains(networks, "caddy-net") {
@@ -93,10 +104,13 @@ func PatchAppCompose(path, service, containerName string) error {
 
 	out, err := yaml.Marshal(raw)
 	if err != nil {
-		return fmt.Errorf("marshaling compose: %w", err)
+		return "", fmt.Errorf("marshaling compose: %w", err)
 	}
 
-	return os.WriteFile(path, out, 0644)
+	if err := os.WriteFile(path, out, 0644); err != nil {
+		return "", err
+	}
+	return actualContainerName, nil
 }
 
 func toStringSlice(v interface{}) []string {

@@ -10,14 +10,18 @@ import (
 )
 
 var (
-	proxyDir    string
-	projectsDir string
+	proxyDir     string
+	projectsDir  string
 	caddyService string
+	version      = "dev"
+	commit       = "none"
+	date         = "unknown"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "caddyku",
-	Short: "Manage Caddy reverse proxy for multiple Docker projects",
+	Use:     "caddyku",
+	Short:   "Manage Caddy reverse proxy for multiple Docker projects",
+	Version: version,
 }
 
 func Execute() {
@@ -28,6 +32,8 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.SetVersionTemplate("caddyku {{ .Version }}\ncommit: " + commit + "\nbuilt: " + date + "\n")
+
 	home, _ := os.UserHomeDir()
 	defaultProxyDir := filepath.Join(home, "projects", "caddy-proxy")
 	defaultProjectsDir := filepath.Join(home, "projects")

@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/jufi/caddyku/internal"
+	"github.com/jufianto/caddyku/internal"
 	"github.com/spf13/cobra"
 )
 
@@ -13,8 +13,8 @@ var (
 )
 
 var removeCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Remove a domain block from the Caddyfile",
+	Use:     "remove",
+	Short:   "Remove a domain block from the Caddyfile",
 	Example: `  caddyku remove --domain app.com`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if removeDomain == "" {

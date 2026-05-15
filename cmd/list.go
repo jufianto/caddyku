@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/jufi/caddyku/internal"
+	"github.com/jufianto/caddyku/internal"
 	"github.com/spf13/cobra"
 )
 
