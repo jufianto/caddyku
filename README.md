@@ -27,23 +27,51 @@ One `caddy-proxy` Docker Compose project runs Caddy on ports 80/443. Every app j
 
 ## Requirements
 
-- Go 1.21+
 - Docker + Docker Compose
-- A running `caddy-proxy` project (see [Getting Started](#getting-started))
+- A VPS or local machine running Linux, macOS, or Windows
 
 ## Installation
 
+### Option 1 — Download binary (recommended, no Go required)
+
+Go to the [Releases](https://github.com/jufi/caddyku/releases/latest) page and download the binary for your platform, or use `curl` directly on your VPS:
+
+**Linux (amd64)**
 ```bash
-git clone https://github.com/jufi/caddyku
-cd caddyku
-go install .
+curl -sSL https://github.com/jufi/caddyku/releases/latest/download/caddyku_linux_amd64.tar.gz \
+  | tar -xz && sudo mv caddyku /usr/local/bin/
 ```
 
-Or build manually:
+**Linux (arm64)** — e.g. Raspberry Pi, Oracle Cloud ARM
+```bash
+curl -sSL https://github.com/jufi/caddyku/releases/latest/download/caddyku_linux_arm64.tar.gz \
+  | tar -xz && sudo mv caddyku /usr/local/bin/
+```
+
+**macOS**
+```bash
+curl -sSL https://github.com/jufi/caddyku/releases/latest/download/caddyku_darwin_arm64.tar.gz \
+  | tar -xz && sudo mv caddyku /usr/local/bin/
+```
+
+Then verify:
 
 ```bash
-go build -o caddyku .
-sudo mv caddyku /usr/local/bin/
+caddyku --help
+```
+
+### Option 2 — Install with Go
+
+If you have Go 1.21+ installed:
+
+```bash
+go install github.com/jufi/caddyku@latest
+```
+
+Make sure `$GOPATH/bin` is in your `PATH`:
+
+```bash
+export PATH="$PATH:$(go env GOPATH)/bin"
 ```
 
 ## Getting Started
