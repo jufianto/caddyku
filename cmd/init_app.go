@@ -28,7 +28,12 @@ var initAppCmd = &cobra.Command{
 			return fmt.Errorf("--service and --container are required")
 		}
 
-		composePath := filepath.Join(initAppDir, "docker-compose.yml")
+		absDir, err := filepath.Abs(initAppDir)
+		if err != nil {
+			return fmt.Errorf("resolving dir: %w", err)
+		}
+
+		composePath := filepath.Join(absDir, "docker-compose.yml")
 		if _, err := os.Stat(composePath); os.IsNotExist(err) {
 			return fmt.Errorf("docker-compose.yml not found at %s", composePath)
 		}
@@ -45,13 +50,13 @@ var initAppCmd = &cobra.Command{
 					{Domain: initAppDomain, Upstream: initAppUpstream},
 				},
 			}
-			configPath := filepath.Join(initAppDir, "caddyku.yaml")
+			configPath := filepath.Join(absDir, "caddyku.yaml")
 			if err := internal.WriteAppConfig(configPath, cfg); err != nil {
 				return fmt.Errorf("writing caddyku.yaml: %w", err)
 			}
 			fmt.Printf("Created %s\n", configPath)
 
-			label := filepath.Base(initAppDir)
+			label := filepath.Base(absDir)
 			cf := caddyfilePath()
 			if err := internal.AddBlock(cf, label, cfg.Domains); err != nil {
 				return fmt.Errorf("updating Caddyfile: %w", err)
@@ -68,13 +73,11 @@ var initAppCmd = &cobra.Command{
 }
 
 func init() {
-	home, _ := os.UserHomeDir()
 	initAppCmd.Flags().StringVar(&initAppDir, "dir", ".", "path to the app project directory")
 	initAppCmd.Flags().StringVar(&initAppService, "service", "", "service name in docker-compose.yml to patch")
 	initAppCmd.Flags().StringVar(&initAppContainer, "container", "", "container_name to set for the service")
 	initAppCmd.Flags().StringVar(&initAppDomain, "domain", "", "domain to register in Caddyfile (optional)")
 	initAppCmd.Flags().StringVar(&initAppUpstream, "upstream", "", "upstream container:port (optional, required if --domain set)")
 	initAppCmd.Flags().BoolVar(&initAppNoReload, "no-reload", false, "skip caddy reload")
-	_ = home
 	rootCmd.AddCommand(initAppCmd)
 }

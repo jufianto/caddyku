@@ -192,10 +192,22 @@ caddyku init-app \
 | Flag | Required | Description |
 |---|---|---|
 | `--dir` | no (default: `.`) | App project directory |
-| `--service` | yes | Service name in docker-compose.yml |
-| `--container` | yes | Container name (used by Caddy for DNS routing) |
-| `--domain` | no | Domain to register |
-| `--upstream` | no | Upstream in `container:port` format |
+| `--service` | yes | The service key inside `docker-compose.yml` to patch — e.g. if your compose has `services: backend:`, pass `--service backend`. Only this service will be added to `caddy-net`. |
+| `--container` | yes | The `container_name` to set on that service. Caddy uses this as the DNS hostname to route traffic. Must be unique across all your projects. |
+| `--domain` | no | Domain to register in the Caddyfile |
+| `--upstream` | no | Where Caddy forwards requests, in `container_name:port` format. Usually the same as `--container` with the port your app listens on. |
+
+Example `docker-compose.yml` before running `init-app`:
+
+```yaml
+services:
+  backend:      # <-- this is --service backend
+    image: myapp:latest
+  db:
+    image: postgres:16
+```
+
+After running `init-app --service backend --container myapp-backend`, the `backend` service gets `container_name: myapp-backend` and joins `caddy-net`. The `db` service is untouched and stays internal.
 
 ### `caddyku sync`
 
@@ -219,6 +231,67 @@ domains:
 ```
 
 The `upstream` value must match the `container_name` of the service in your `docker-compose.yml`.
+
+### Custom Caddy config
+
+For simple apps, `upstream` is enough. For advanced Caddy behavior, use `body` instead. This lets you write custom Caddy directives while still letting `caddyku sync` manage the shared `Caddyfile`.
+
+Example with a frontend route and a backend API route:
+
+```yaml
+domains:
+  - domain: ujianku-stag.jufi.dev
+    body: |
+      # Proxy /uploads/* to the backend because uploaded files are stored there.
+      handle /uploads/* {
+          reverse_proxy ujianku-backend:8080
+      }
+
+      # Everything else goes to the frontend Nginx container.
+      handle {
+          reverse_proxy ujianku-frontend:80
+      }
+
+  - domain: ujianku-api-stag.jufi.dev
+    body: |
+      reverse_proxy ujianku-backend:8080 {
+          header_up X-Real-IP {remote_host}
+          header_up X-Forwarded-For {remote_host}
+          header_up X-Forwarded-Proto {scheme}
+      }
+```
+
+Generated Caddyfile:
+
+```caddyfile
+# BEGIN caddyku:ujianku
+ujianku-stag.jufi.dev {
+    # Proxy /uploads/* to the backend because uploaded files are stored there.
+    handle /uploads/* {
+        reverse_proxy ujianku-backend:8080
+    }
+
+    # Everything else goes to the frontend Nginx container.
+    handle {
+        reverse_proxy ujianku-frontend:80
+    }
+}
+
+ujianku-api-stag.jufi.dev {
+    reverse_proxy ujianku-backend:8080 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+# END caddyku:ujianku
+```
+
+Rules:
+
+1. Use either `upstream` or `body` for a domain, not both.
+2. `body` is raw Caddy config placed inside the domain block.
+3. Caddy validates the final config during reload.
 
 ## Caddyfile format
 

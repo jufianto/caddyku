@@ -14,7 +14,13 @@ func caddyfileBlock(label string, entries []DomainEntry) string {
 	var sb strings.Builder
 	sb.WriteString(beginPrefix + label + "\n")
 	for _, e := range entries {
-		sb.WriteString(fmt.Sprintf("%s {\n    reverse_proxy %s\n}\n\n", e.Domain, e.Upstream))
+		sb.WriteString(e.Domain + " {\n")
+		if e.Body != "" {
+			sb.WriteString(indentBlock(e.Body))
+		} else {
+			sb.WriteString(fmt.Sprintf("    reverse_proxy %s\n", e.Upstream))
+		}
+		sb.WriteString("}\n\n")
 	}
 	sb.WriteString(endPrefix + label + "\n")
 	return sb.String()
@@ -154,4 +160,23 @@ func findBlockLabels(content string) []string {
 		labels = append(labels, strings.TrimSpace(m[1]))
 	}
 	return labels
+}
+
+func indentBlock(body string) string {
+	body = strings.Trim(body, "\n")
+	if body == "" {
+		return ""
+	}
+
+	var sb strings.Builder
+	for _, line := range strings.Split(body, "\n") {
+		if strings.TrimSpace(line) == "" {
+			sb.WriteString("\n")
+			continue
+		}
+		sb.WriteString("    ")
+		sb.WriteString(line)
+		sb.WriteString("\n")
+	}
+	return sb.String()
 }

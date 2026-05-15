@@ -10,6 +10,7 @@ import (
 type DomainEntry struct {
 	Domain   string `yaml:"domain"`
 	Upstream string `yaml:"upstream"`
+	Body     string `yaml:"body"`
 }
 
 type AppConfig struct {
@@ -27,6 +28,17 @@ func ParseConfig(path string) (*AppConfig, error) {
 	}
 	if len(cfg.Domains) == 0 {
 		return nil, fmt.Errorf("config has no domains defined")
+	}
+	for _, domain := range cfg.Domains {
+		if domain.Domain == "" {
+			return nil, fmt.Errorf("domain entry is missing domain")
+		}
+		if domain.Upstream == "" && domain.Body == "" {
+			return nil, fmt.Errorf("domain %q must define upstream or body", domain.Domain)
+		}
+		if domain.Upstream != "" && domain.Body != "" {
+			return nil, fmt.Errorf("domain %q cannot define both upstream and body", domain.Domain)
+		}
 	}
 	return &cfg, nil
 }
